@@ -13,10 +13,19 @@ func main() {
 	fmt.Println("main function...")
 	db.ConnectToDB()
 
+	// FETCHES
+
 	chatList, err := db.LoadChats()
 	if err != nil {
 		panic(err)
 	}
+
+	messages, err := db.LoadMessages()
+	if err != nil {
+		panic(err)
+	}
+
+	// ---------
 
 	a := app.New()
 	w := a.NewWindow("Chat-Server")
@@ -45,33 +54,44 @@ func main() {
 		}
 	})
 
-	inputContainer := container.NewHBox(inputField, sendButton)
+	secondContainer := container.NewVBox(contentText)
+	messagesContainer := container.NewVBox()
 
 	listView.OnSelected = func(id widget.ListItemID) {
+		secondContainer.Objects = nil
+		messagesContainer.Objects = nil
 		contentText.Text = "Selected chat: " + chatList[id].Name
 		contentText.Refresh()
 
-		w.SetContent(container.NewBorder(
-			nil,                            // no top part
-			inputContainer,                 // bottom part with the input and button
-			listView,                       // left side with the list view
-			nil,                            // no right part
-			container.NewVBox(contentText), // the content (chat messages) area
-		))
+		//content := container.NewVBox(inputField, sendButton)
+
+		for _, msg := range messages {
+			if msg.ChatRoomID-1 == id { // -1 because an indexation of a database and an array doesn's match
+				messageLabel := widget.NewLabel(fmt.Sprintf("Sender %d: %s", msg.SenderID, msg.Message))
+				messagesContainer.Add(messageLabel)
+			}
+		}
+
+		contentContainer := container.NewBorder(
+			contentText, // Top (chat content header),
+			container.NewVBox(inputField, sendButton), // Bottom (input bar and button),
+			messagesContainer,
+			nil,
+		)
+
+		//secondContainer.Add(contentText)
+		secondContainer.Add(contentContainer)
+		secondContainer.Refresh()
+
 	}
 
-	w.SetContent(container.NewHSplit(
+	split := container.NewHSplit(
 		listView,
-		container.NewMax(contentText),
-	))
+		secondContainer,
+	)
+	split.Offset = 0.2
 
-	// split := container.NewHSplit(
-	// 	listView,
-	// 	container.NewMax(contentText),
-	// )
-	// split.Offset = 0.2
-
-	// w.SetContent(split)
+	w.SetContent(split)
 
 	w.ShowAndRun()
 }
