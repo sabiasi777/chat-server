@@ -9,6 +9,7 @@ fyne.io/fyne/v2/app
 fyne.io/fyne/v2/canvas
 fyne.io/fyne/v2/container
 fyne.io/fyne/v2/data/binding
+fyne.io/fyne/v2/dialog
 fyne.io/fyne/v2/driver
 fyne.io/fyne/v2/driver/desktop
 fyne.io/fyne/v2/driver/mobile
@@ -119,7 +120,6 @@ github.com/godbus/dbus/v5/introspect
 github.com/godbus/dbus/v5/prop
 # github.com/golang-jwt/jwt/v5 v5.2.1
 ## explicit; go 1.18
-github.com/golang-jwt/jwt/v5
 # github.com/gopherjs/gopherjs v1.17.2
 ## explicit; go 1.17
 github.com/gopherjs/gopherjs/js
@@ -141,6 +141,7 @@ github.com/pmezard/go-difflib/difflib
 # github.com/rymdport/portal v0.3.0
 ## explicit; go 1.19
 github.com/rymdport/portal
+github.com/rymdport/portal/filechooser
 github.com/rymdport/portal/internal/apis
 github.com/rymdport/portal/internal/convert
 github.com/rymdport/portal/notification

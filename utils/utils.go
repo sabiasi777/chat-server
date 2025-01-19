@@ -5,7 +5,6 @@ type User struct {
 	Username     string
 	Email        string
 	PasswordHash string
-	JWTToken     string
 }
 
 type ChatRoom struct {
