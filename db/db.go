@@ -6,73 +6,60 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/sabiasi777/chat-server/utils"
 	"golang.org/x/crypto/bcrypt"
+	"log"
 )
 
-var db *sql.DB
+var DB *sql.DB
 
 func ConnectToDB() {
-	// temporarily.
 	dsn := "root:skofildi123@tcp(localhost:3306)/chat"
 
 	var err error
-	db, err = sql.Open("mysql", dsn)
+	DB, err = sql.Open("mysql", dsn)
 	if err != nil {
-		panic(err)
+		log.Fatalf("Failed to connect to the database: %v", err)
 	}
 	fmt.Println("Connected to the database")
 
-	err = db.Ping()
+	err = DB.Ping()
 	if err != nil {
-		panic(err)
+		log.Fatalf("Database is unreachable: %v", err)
 	}
 }
 
-func CheckAuth() {
-
-}
-
-func Login(User utils.User) error {
-	stmt, err := db.Prepare("SELECT * FROM users WHERE email = ?")
+func Login(user utils.User) error {
+	stmt, err := DB.Prepare("SELECT id, username, email, password_hash FROM users WHERE email = ?")
 	if err != nil {
 		return err
 	}
 	defer stmt.Close()
 
-	rows, err := db.Query(User.Email)
+	var dbUser utils.User
+	err = stmt.QueryRow(user.Email).Scan(&dbUser.ID, &dbUser.Username, &dbUser.Email, &dbUser.PasswordHash)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return fmt.Errorf("invalid email or password")
+		}
+
 		return err
 	}
-	defer rows.Close()
 
-	if !rows.Next() {
-		fmt.Println("Invalid email")
-	}
-
-	var user utils.User
-	for rows.Next() {
-		err := rows.Scan(&user.ID, &user.Username, &user.Email, &user.PasswordHash)
-		if err != nil {
-			return err
-		}
-	}
-
-	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(User.PasswordHash)) // nill means it is a match
-
+	err = bcrypt.CompareHashAndPassword([]byte(dbUser.PasswordHash), []byte(user.PasswordHash))
 	if err != nil {
-		fmt.Println("Invalid password")
+		return fmt.Errorf("Invalid email or password")
 	}
 
 	return nil
 }
 
-func Register(User utils.User) error {
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(User.PasswordHash), bcrypt.DefaultCost)
+func Register(user utils.User) error {
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.PasswordHash), bcrypt.DefaultCost)
 	if err != nil {
 		return err
 	}
-	User.PasswordHash = string(hashedPassword)
-	_, err = db.Exec("INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)",
-		User.Username, User.Email, User.PasswordHash)
+	user.PasswordHash = string(hashedPassword)
+	_, err = DB.Exec("INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)",
+		user.Username, user.Email, user.PasswordHash)
 
 	if err != nil {
 		return err
@@ -83,7 +70,7 @@ func Register(User utils.User) error {
 
 func LoadChats() ([]utils.ChatRoom, error) {
 	// get data from the database
-	rows, err := db.Query("SELECT id, name FROM chat_rooms")
+	rows, err := DB.Query("SELECT id, name FROM chat_rooms")
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +89,7 @@ func LoadChats() ([]utils.ChatRoom, error) {
 }
 
 func LoadMessages() ([]utils.Message, error) {
-	rows, err := db.Query("SELECT id, chat_room_id, sender_id, message FROM messages")
+	rows, err := DB.Query("SELECT id, chat_room_id, sender_id, message FROM messages")
 	if err != nil {
 		return nil, err
 	}

@@ -1,18 +1,11 @@
 package utils
 
-// type ChatList struct {
-// 	List []Chat
-// }
-
-type Chat struct {
-	Title string
-}
-
 type User struct {
 	ID           int
 	Username     string
 	Email        string
 	PasswordHash string
+	JWTToken     string
 }
 
 type ChatRoom struct {
