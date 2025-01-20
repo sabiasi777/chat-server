@@ -120,6 +120,25 @@ func LoadChats(ID int) ([]utils.ChatRoom, error) {
 	return chatRooms, nil
 }
 
+func LoadChatByName(chatName string) (utils.ChatRoom, error) {
+	stmt, err := DB.Prepare("SELECT id, name FROM chat_rooms WHERE name = ?")
+	if err != nil {
+		return utils.ChatRoom{}, err
+	}
+	defer stmt.Close()
+
+	var chatRoom utils.ChatRoom
+	err = stmt.QueryRow(chatName).Scan(&chatRoom.ID, &chatRoom.Name)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return utils.ChatRoom{}, fmt.Errorf("invalid chat name")
+		}
+		return utils.ChatRoom{}, err
+	}
+
+	return chatRoom, nil
+}
+
 func LoadMessages() ([]utils.Message, error) {
 	rows, err := DB.Query("SELECT id, chat_room_id, sender_id, message FROM messages")
 	if err != nil {
@@ -195,4 +214,34 @@ func CreateChat(chatName string, memberIDs []int) error {
 	}
 
 	return nil
+}
+
+func SendMessage(message utils.Message) error {
+	_, err := DB.Exec("INSERT INTO messages (chat_room_id, sender_id, message) VALUES (?, ?, ?)",
+		message.ChatRoomID, message.SenderID, message.Message)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func LoadUserByID(userID int) (string, error) {
+	stmt, err := DB.Prepare("SELECT username FROM users WHERE id = ?")
+	if err != nil {
+		return "", err
+	}
+	defer stmt.Close()
+
+	var username string
+	err = stmt.QueryRow(userID).Scan(&username)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return "", fmt.Errorf("invalid userID")
+		}
+		return "", err
+	}
+
+	return username, nil
 }

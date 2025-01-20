@@ -4,11 +4,8 @@ import (
 	"fmt"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
-	// "fyne.io/fyne/v2/container"
-	// "fyne.io/fyne/v2/widget"
 	"github.com/sabiasi777/chat-server/auth"
 	"github.com/sabiasi777/chat-server/db"
-	//"log"
 )
 
 func main() {
@@ -26,6 +23,5 @@ func main() {
 	w.Resize(fyne.NewSize(1200, 800))
 
 	auth.LoadAuthPage(w)
-
 	a.Run()
 }

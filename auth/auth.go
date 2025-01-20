@@ -92,18 +92,23 @@ func LoadAuthPage(myWindow fyne.Window) {
 	myWindow.SetContent(container.NewVBox(loginPage))
 
 	// Show the window
+	myWindow.Resize(fyne.NewSize(1920, 1080))
 	myWindow.Show()
 }
 
 func LoadMainPage(w fyne.Window) {
+	var chatID int
+	var currentChat utils.ChatRoom
 	chatList, err := db.LoadChats(db.CurrentUser.ID)
 	if err != nil {
-		panic(err)
+		fmt.Errorf("couldn't load chats: %v", err)
+		return
 	}
 
 	messages, err := db.LoadMessages()
 	if err != nil {
-		panic(err)
+		fmt.Errorf("couldn't load messages: %v", err)
+		return
 	}
 
 	// Chat List
@@ -122,25 +127,69 @@ func LoadMainPage(w fyne.Window) {
 	inputField := widget.NewEntry()
 	inputField.SetPlaceHolder("Type your message...")
 
+	secondContainer := container.NewVBox(contentText)
+
+	messagesContainer := container.NewVBox()
+
+	messagesContainer.Resize(fyne.NewSize(600, 800))
+	messagesContainer.Layout = layout.NewVBoxLayout()
+
+	scrollContainer := container.NewScroll(messagesContainer)
+	scrollContainer.SetMinSize(fyne.NewSize(600, 800))
+
 	sendButton := widget.NewButton("Send", func() {
 		if inputField.Text != "" {
-			fmt.Println("Message sent:", inputField.Text)
+			db.SendMessage(utils.Message{ChatRoomID: chatID, SenderID: db.CurrentUser.ID, Message: inputField.Text})
 			inputField.SetText("")
+
+			messages, err := db.LoadMessages()
+			if err != nil {
+				fmt.Errorf("couldn't load messages: %v", err)
+				return
+			}
+
+			// Clear current messages
+			messagesContainer.Objects = nil
+
+			// Add the messages to the container
+			for _, msg := range messages {
+				if msg.ChatRoomID == chatID {
+					senderUsername, err := db.LoadUserByID(msg.SenderID)
+					if err != nil {
+						fmt.Errorf("couldn't fetch user by id")
+					}
+					messageLabel := widget.NewLabel(fmt.Sprintf("%s: %s", senderUsername, msg.Message))
+					messagesContainer.Add(messageLabel)
+				}
+			}
+
+			// Refresh to update the container with new messages
+			messagesContainer.Refresh()
+			scrollContainer.Refresh()
+
+			// Scroll to the bottom
+			scrollContainer.ScrollToBottom()
 		}
 	})
-
-	secondContainer := container.NewVBox(contentText)
-	messagesContainer := container.NewVBox()
 
 	listView.OnSelected = func(id widget.ListItemID) {
 		secondContainer.Objects = nil
 		messagesContainer.Objects = nil
 		contentText.Text = "Selected chat: " + chatList[id].Name
+		currentChat, err = db.LoadChatByName(chatList[id].Name)
+		if err != nil {
+			fmt.Errorf("couldn't fetch chat by name: %v", err)
+		}
+		chatID = currentChat.ID
 		contentText.Refresh()
 
 		for _, msg := range messages {
-			if msg.ChatRoomID-1 == id {
-				messageLabel := widget.NewLabel(fmt.Sprintf("Sender %d: %s", msg.SenderID, msg.Message))
+			if msg.ChatRoomID == chatID {
+				senderUsername, err := db.LoadUserByID(msg.SenderID)
+				if err != nil {
+					fmt.Errorf("couldn't fetch user by id")
+				}
+				messageLabel := widget.NewLabel(fmt.Sprintf("%s: %s", senderUsername, msg.Message))
 				messagesContainer.Add(messageLabel)
 			}
 		}
@@ -150,11 +199,14 @@ func LoadMainPage(w fyne.Window) {
 			container.NewVBox(inputField, sendButton),
 			nil,
 			nil,
-			messagesContainer,
+			scrollContainer, // Use the scrollable container for messages
 		)
 
 		secondContainer.Add(contentContainer)
 		secondContainer.Refresh()
+
+		// Scroll to the bottom after loading messages
+		scrollContainer.ScrollToBottom()
 	}
 
 	// Create New Chat Button
@@ -190,7 +242,7 @@ func LoadMainPage(w fyne.Window) {
 	)
 
 	w.SetContent(mainContent)
-	w.Resize(fyne.NewSize(800, 600))
+	w.Resize(fyne.NewSize(1920, 1080))
 	w.Show()
 }
 
@@ -220,6 +272,7 @@ func createNewChat(w fyne.Window) {
 	}
 
 	// Create and add chat button
+	var chatWindow fyne.Window // Declare the window here so it's accessible in the callback
 	createChatButton := widget.NewButton("Create Chat", func() {
 		chatName := chatNameEntry.Text
 		if chatName == "" {
@@ -247,8 +300,10 @@ func createNewChat(w fyne.Window) {
 			return
 		}
 
+		// Show success message and close the window
 		dialog.ShowInformation("Success", "Chat created successfully!", w)
-		LoadMainPage(w)
+		chatWindow.Close() // Close the window
+		LoadMainPage(w)    // Reload the main page
 	})
 
 	bottomSection := container.NewBorder(
@@ -269,9 +324,9 @@ func createNewChat(w fyne.Window) {
 	split := container.NewVSplit(topSection, bottomSection)
 	split.Offset = 0.3 // Control the width ratio of the left section
 
-	// Set the final layout of the window
-	chatWindow := fyne.CurrentApp().NewWindow("Create New Chat")
+	// Initialize the "Create New Chat" window
+	chatWindow = fyne.CurrentApp().NewWindow("Create New Chat") // Assign the window instance here
 	chatWindow.SetContent(split)
-	chatWindow.Resize(fyne.NewSize(600, 400)) // Adjust the size as needed
+	chatWindow.Resize(fyne.NewSize(1920, 1080)) // Adjust the size as needed
 	chatWindow.Show()
 }
