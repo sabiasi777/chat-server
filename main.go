@@ -20,7 +20,7 @@ func main() {
 
 	a := app.New()
 	w := a.NewWindow("Chat-Server")
-	w.Resize(fyne.NewSize(1200, 800))
+	w.Resize(fyne.NewSize(500, 500))
 
 	auth.LoadAuthPage(w)
 	a.Run()

@@ -13,7 +13,7 @@ var DB *sql.DB
 var CurrentUser utils.User
 
 func ConnectToDB() {
-	dsn := "root:skofildi123@tcp(localhost:3306)/chat"
+	dsn := "nebula:skofildi123@tcp(localhost:3306)/chat"
 
 	var err error
 	DB, err = sql.Open("mysql", dsn)
